@@ -14,7 +14,8 @@ pipeline{
     }
 
     stages{
-         
+               stage ('Pushing Jfrog File'){
+
         stage('Git Checkout'){
                     when { expression {  params.action == 'create' } }
             steps{
@@ -25,12 +26,12 @@ pipeline{
             }
         }
          stage('Unit Test maven'){
-         
+
          when { expression {  params.action == 'create' } }
 
             steps{
                script{
-                   
+
                    mvnTest()
                }
             }
@@ -39,7 +40,7 @@ pipeline{
          when { expression {  params.action == 'create' } }
             steps{
                script{
-                   
+
                    mvnIntegrationTest()
                }
             }
@@ -48,7 +49,7 @@ pipeline{
          when { expression {  params.action == 'create' } }
             steps{
                script{
-                   
+
                    def SonarQubecredentialsId = 'sonarqube-api'
                    statiCodeAnalysis(SonarQubecredentialsId)
                }
@@ -56,19 +57,24 @@ pipeline{
        }
        stage('Quality Gate Status Check : Sonarqube'){
          when { expression {  params.action == 'create' } }
+         steps{
+           script{
+                sh 'curl -X PUT -u admin:Password1 -T  /var/lib/jenkins/workspace/Java_app_3.0/target/kubernetes-configmap-reload-0.0.1-SNAPSHOT.jar "http://18.144.83.52:8082/artifactory/example-repo-local/kubernetes-configmap-reload-0.0.1-SNAPSHOT.jar"'
             steps{
                script{
-                   
+
                    def SonarQubecredentialsId = 'sonarqube-api'
                    QualityGateStatus(SonarQubecredentialsId)
                }
+           }
             }
        }
+
         stage('Maven Build : maven'){
          when { expression {  params.action == 'create' } }
             steps{
                script{
-                   
+
                    mvnBuild()
                }
             }
@@ -77,7 +83,7 @@ pipeline{
          when { expression {  params.action == 'create' } }
             steps{
                script{
-                   
+
                    dockerBuild("${params.ImageName}","${params.ImageTag}","${params.DockerHubUser}")
                }
             }
@@ -86,7 +92,7 @@ pipeline{
          when { expression {  params.action == 'create' } }
             steps{
                script{
-                   
+
                    dockerImageScan("${params.ImageName}","${params.ImageTag}","${params.DockerHubUser}")
                }
             }
@@ -95,7 +101,7 @@ pipeline{
          when { expression {  params.action == 'create' } }
             steps{
                script{
-                   
+
                    dockerImagePush("${params.ImageName}","${params.ImageTag}","${params.DockerHubUser}")
                }
             }
@@ -104,7 +110,7 @@ pipeline{
          when { expression {  params.action == 'create' } }
             steps{
                script{
-                   
+
                    dockerImageCleanup("${params.ImageName}","${params.ImageTag}","${params.DockerHubUser}")
                }
             }
