@@ -14,7 +14,6 @@ pipeline{
     }
 
     stages{
-               stage ('Pushing Jfrog File'){
 
         stage('Git Checkout'){
                     when { expression {  params.action == 'create' } }
@@ -54,22 +53,17 @@ pipeline{
                    statiCodeAnalysis(SonarQubecredentialsId)
                }
             }
-       }
+        }
        stage('Quality Gate Status Check : Sonarqube'){
          when { expression {  params.action == 'create' } }
-         steps{
-           script{
-                sh 'curl -X PUT -u admin:Password1 -T  /var/lib/jenkins/workspace/Java_app_3.0/target/kubernetes-configmap-reload-0.0.1-SNAPSHOT.jar "http://18.144.83.52:8082/artifactory/example-repo-local/kubernetes-configmap-reload-0.0.1-SNAPSHOT.jar"'
             steps{
                script{
 
                    def SonarQubecredentialsId = 'sonarqube-api'
                    QualityGateStatus(SonarQubecredentialsId)
                }
-           }
             }
-       }
-
+        }
         stage('Maven Build : maven'){
          when { expression {  params.action == 'create' } }
             steps{
@@ -113,6 +107,27 @@ pipeline{
 
                    dockerImageCleanup("${params.ImageName}","${params.ImageTag}","${params.DockerHubUser}")
                }
+            }
+        }
+        // Stage for pushing artifacts to JFrog Artifactory
+        stage('Push to JFrog Artifactory'){
+         when { expression { params.action == 'create' } }
+            steps{
+                script{
+                    // Connect to JFrog Artifactory server
+                    def server = Artifactory.server 'Pushartifact'
+                    // define the upload specification
+                    def uploadSpec = """{
+                        "files": [
+                            {
+                                "pattern": "target/*.jar",
+                                "target" : "example-repo-local/"
+                            }
+                        ]
+                    }"""
+                    // Upload Artifacts to JFrog Artifactory
+                    server.upload(uploadSpec)
+                }
             }
         }      
     }
